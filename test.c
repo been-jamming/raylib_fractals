@@ -74,47 +74,37 @@ static void draw_complex_circle(complex double center, double radius, Color c){
 	Vector2 screen_center;
 
 	screen_center = get_complex_pos(center);
-	DrawCircle(round(screen_center.x), round(screen_center.y), radius*screen_height/4.0, c);
+	DrawCircleGradient(round(screen_center.x), round(screen_center.y), radius*screen_height/4.0, RAYWHITE, c);
 }
 
-static void draw_fractal_recursive(int depth, complex double center, double radius, mobius current_word, int last_gen, Color c){
+static void draw_fractal(int depth, mobius current_word, int last_gen, int inverse){
 	int i;
-	mobius next_word;
 	complex double new_center;
 	double new_radius;
+	mobius new_word;
 
 	if(depth <= 0){
-		mobius_circle_image(current_word, center, radius, &new_center, &new_radius);
-		draw_complex_circle(new_center, new_radius, c);
 		return;
 	}
 
 	for(i = 0; i < NUM_GENS; i++){
-		if(last_gen == -i - 1){
+		if(!inverse && last_gen == i){
 			continue;
 		}
-		next_word = compose_mobius(gens[i], current_word);
-		draw_fractal_recursive(depth - 1, center, radius, next_word, i + 1, c);
+		mobius_circle_image(current_word, gen_centers0[i], gen_radii0[i], &new_center, &new_radius);
+		draw_complex_circle(new_center, new_radius, gen_inverse_colors[i]);
+		new_word = compose_mobius(current_word, gen_inverses[i]);
+		draw_fractal(depth - 1, new_word, i, 1);
 	}
 
 	for(i = 0; i < NUM_GENS; i++){
-		if(last_gen == i + 1){
+		if(inverse && last_gen == i){
 			continue;
 		}
-		next_word = compose_mobius(gen_inverses[i], current_word);
-		draw_fractal_recursive(depth - 1, center, radius, next_word, -i - 1, c);
-	}
-}
-
-static void draw_fractal(int depth){
-	int i;
-
-	for(i = 0; i < NUM_GENS; i++){
-		draw_fractal_recursive(depth - 1, gen_centers0[i], gen_radii0[i], (mobius) {1, 0, 0, 1}, -i - 1, gen_colors[i]);
-	}
-
-	for(i = 0; i < NUM_GENS; i++){
-		draw_fractal_recursive(depth - 1, gen_centers1[i], gen_radii1[i], (mobius) {1, 0, 0, 1}, i + 1, gen_inverse_colors[i]);
+		mobius_circle_image(current_word, gen_centers1[i], gen_radii1[i], &new_center, &new_radius);
+		draw_complex_circle(new_center, new_radius, gen_colors[i]);
+		new_word = compose_mobius(current_word, gens[i]);
+		draw_fractal(depth - 1, new_word, i, 0);
 	}
 }
 
@@ -125,9 +115,9 @@ int main(int argc, char **argv){
 	while(!WindowShouldClose()){
 		BeginDrawing();
 		ClearBackground(BLACK);
-		for(i = 1; i < 10; i++){
-			draw_fractal(i);
-		}
+		//for(i = 1; i < 10; i++){
+			draw_fractal(10, (mobius) {1, 0, 0, 1}, NUM_GENS, 0);
+		//}
 		EndDrawing();
 	}
 
